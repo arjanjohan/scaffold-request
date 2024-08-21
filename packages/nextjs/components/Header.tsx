@@ -4,7 +4,7 @@ import React, { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bars3Icon, BugAntIcon, DocumentPlusIcon } from "@heroicons/react/24/outline";
+import { Bars3Icon, BugAntIcon, DocumentDuplicateIcon, DocumentPlusIcon } from "@heroicons/react/24/outline";
 import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
 
@@ -20,8 +20,13 @@ export const menuLinks: HeaderMenuLink[] = [
     href: "/",
   },
   {
+    label: "Invoice Dashboard",
+    href: "/request-dashboard",
+    icon: <DocumentDuplicateIcon className="h-4 w-4" />,
+  },
+  {
     label: "Create Invoice",
-    href: "/create-request",
+    href: "/request-create",
     icon: <DocumentPlusIcon className="h-4 w-4" />,
   },
   {
