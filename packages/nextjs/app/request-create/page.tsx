@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import Head from "next/head";
 import type { RequestNetwork } from "@requestnetwork/request-client.js";
 import { useAccount, useWalletClient } from "wagmi";
-import { CreateInvoiceFormProps } from "~~/types";
+import type { CreateInvoiceFormProps } from "~~/types";
 import { config } from "~~/utils/request/config";
 import { currencies } from "~~/utils/request/currencies";
 import { initializeRequestNetwork } from "~~/utils/request/initializeRN";
 
 import("@requestnetwork/create-invoice-form");
 
-export default function CreateInvoice() {
+const CreateInvoice: React.FC = () => {
   const formRef = useRef<CreateInvoiceFormProps>(null);
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
@@ -24,25 +24,24 @@ export default function CreateInvoice() {
   }, [walletClient]);
 
   useEffect(() => {
-    if (formRef.current) {
+    if (formRef.current && requestNetwork && address) {
       formRef.current.config = config;
-
-      if (requestNetwork) {
-        formRef.current.signer = address!;
-        formRef.current.requestNetwork = requestNetwork;
-        formRef.current.currencies = currencies;
-      }
+      formRef.current.signer = address;
+      formRef.current.requestNetwork = requestNetwork;
+      formRef.current.currencies = currencies;
     }
-  }, [walletClient, requestNetwork]);
+  }, [requestNetwork, address]);
 
   return (
     <>
       <Head>
-        <title>Request Invoicing - Create an Invoice</title>
+        <title>Create Invoice - Request Invoicing</title>
       </Head>
-      <div className="container m-auto  w-[100%]">
+      <div className="container m-auto w-full">
         <create-invoice-form ref={formRef} />
       </div>
     </>
   );
-}
+};
+
+export default CreateInvoice;
