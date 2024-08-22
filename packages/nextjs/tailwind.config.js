@@ -9,20 +9,21 @@ module.exports = {
     themes: [
       {
         light: {
-          primary: "#93BBFB",
-          "primary-content": "#212638",
-          secondary: "#DAE8FF",
-          "secondary-content": "#212638",
-          accent: "#93BBFB",
-          "accent-content": "#212638",
-          neutral: "#212638",
+          primary: "#0BB489", // dark green
+          "primary-content": "#F9FBFF", //White
+          secondary: "#0BB489",
+          "secondary-content": "#F9FBFF",
+          accent: "#0BB489",
+          "accent-content": "#F9FBFF",
+          neutral: "#02050f",
+
           "neutral-content": "#ffffff",
-          "base-100": "#ffffff",
-          "base-200": "#f4f8ff",
-          "base-300": "#DAE8FF",
-          "base-content": "#212638",
-          info: "#93BBFB",
-          success: "#34EEB6",
+          "base-100": "#58E1A5", // light green
+          "base-200": "#f4f8ff", // bg (white)
+          "base-300": "#58E1A5",
+          "base-content": "#02050f",
+          info: "#adfa91",
+          success: "#58E1A5",
           warning: "#FFCF72",
           error: "#FF8863",
 
