@@ -3,23 +3,27 @@
 import React, { useEffect, useState } from "react";
 import { RequestNetwork, Types } from "@requestnetwork/request-client.js";
 import { formatUnits } from "viem";
-import { useAccount } from "wagmi";
+import { useAccount, useWalletClient } from "wagmi";
+import { initializeRequestNetwork } from "~~/utils/request/initializeRN";
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"All" | "Pay" | "Get Paid">("All");
   const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
+
   const [totalRequestHistory, setTotalRequestHistory] = useState<Types.IRequestDataWithEvents[] | undefined>();
+  const [requestNetwork, setRequestNetwork] = useState<RequestNetwork | null>(null);
 
   useEffect(() => {
-    if (!address) return;
+    if (walletClient) {
+      initializeRequestNetwork(setRequestNetwork, walletClient);
+    }
+  }, [walletClient]);
 
-    const requestClient = new RequestNetwork({
-      nodeConnectionConfig: {
-        baseURL: "https://xdai.gateway.request.network/",
-      },
-    });
+  useEffect(() => {
+    if (!address || !requestNetwork) return;
 
-    requestClient
+    requestNetwork
       .fromIdentity({
         type: Types.Identity.TYPE.ETHEREUM_ADDRESS,
         value: address,
@@ -30,7 +34,7 @@ const Dashboard: React.FC = () => {
       .catch(error => {
         console.error("Failed to fetch request history:", error);
       });
-  }, [address]);
+  }, [address, requestNetwork]);
 
   const calculateStatus = (state: string, expectedAmount: bigint, balance: bigint) => {
     if (balance >= expectedAmount) {
