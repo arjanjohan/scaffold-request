@@ -5,6 +5,7 @@ import { RequestNetwork } from "@requestnetwork/request-client.js";
 import { formatUnits } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 import { initializeRequestNetwork } from "~~/utils/request/initializeRN";
+import { calculateStatus, findCurrency } from "~~/utils/request/helper";
 
 const InvoiceDetails: React.FC = () => {
   const invoiceid = "0185c6b823249cf849c41b8b7c36488e36fb5a3c440dc5e5d4d93aec7098b55b0b";
@@ -35,15 +36,10 @@ const InvoiceDetails: React.FC = () => {
         if (invoice) {
           const data = await invoice.getData();
           const content = data.contentData;
-          console.log(invoice);
-          console.log(data);
-          console.log(content);
 
           // Extract payer and payee Ethereum addresses
           const from = data.payee.value;
           const to = data.payer.value;
-          console.log(from);
-          console.log(to);
 
           // Format dates
           const issuedDate = new Date(content.creationDate).toLocaleDateString();
@@ -56,14 +52,21 @@ const InvoiceDetails: React.FC = () => {
           // Payment details
           console.log("data", data);
           const paymentChain = data.currencyInfo.network;
-          const currency = data.currencyInfo.value;
+          const currencyAddress = data.currencyInfo.value;
 
+          // State
+          const expectedAmount = BigInt(data.expectedAmount);
+          const balance = BigInt(data.balance?.balance || 0);
+          const state = calculateStatus(data.state, expectedAmount, balance);
+
+          const currency = findCurrency(currencyAddress, paymentChain);
           // Map invoice items
           const items = content.invoiceItems.map((item: any) => {
-            const unitPrice = parseFloat(formatUnits(item.unitPrice, 6)); // Assuming 6 decimals for USDC
+            const unitPrice = parseFloat(formatUnits(item.unitPrice, currency.decimals)); // Assuming 6 decimals for USDC
             const qty = item.quantity;
             const discount = parseFloat(item.discount);
             const tax = parseFloat(item.tax.amount);
+            console.log("item", item);
             const amount = parseFloat(((unitPrice * qty - discount) * (1 + tax / 100)).toFixed(2));
             return {
               description: item.name,
@@ -95,6 +98,7 @@ const InvoiceDetails: React.FC = () => {
 
           // Map to invoiceData structure
           const mappedInvoiceData = {
+            state,
             issuedDate,
             dueDate,
             from,
@@ -102,7 +106,7 @@ const InvoiceDetails: React.FC = () => {
             payerDetails: {}, // Placeholder for future data
             payeeDetails: {}, // Placeholder for future data
             paymentChain: paymentChain,
-            currency: currency,
+            currency: currency?.symbol,
             items,
             summary: {
               amountWithoutTax: parseFloat(amountWithoutTax.toFixed(2)),
@@ -152,7 +156,10 @@ const InvoiceDetails: React.FC = () => {
       {/* Header Section */}
       <header className="mb-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Invoice #{invoiceData.invoiceNumber}</h1>
+          <h1 className="text-2xl font-bold">Invoice #{invoiceData.invoiceNumber} </h1> 
+          
+          <button className="bg-gray-400 text-white py-2 px-4 rounded">{invoiceData.state}</button>
+          
           <div className="text-right">
             <p>Issued on {invoiceData.issuedDate}</p>
             <p className="font-semibold">Payment due by {invoiceData.dueDate}</p>
@@ -205,10 +212,10 @@ const InvoiceDetails: React.FC = () => {
               <tr key={index} className="border-b">
                 <td className="py-2">{item.description}</td>
                 <td className="py-2">{item.qty}</td>
-                <td className="py-2">${item.unitPrice.toFixed(2)}</td>
-                <td className="py-2">${item.discount.toFixed(2)}</td>
+                <td className="py-2">{item.unitPrice.toFixed(2)}</td>
+                <td className="py-2">{item.discount.toFixed(2)}</td>
                 <td className="py-2">{item.tax}%</td>
-                <td className="py-2">${item.amount.toFixed(2)}</td>
+                <td className="py-2">{item.amount.toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
@@ -220,48 +227,38 @@ const InvoiceDetails: React.FC = () => {
         <h2 className="text-xl font-semibold">Summary</h2>
         <div className="text-right">
           <p>
-            <strong>Amount without Tax:</strong> ${invoiceData.summary.amountWithoutTax.toFixed(2)}
+            <strong>Amount without Tax:</strong> {invoiceData.summary.amountWithoutTax.toFixed(2) +" " + invoiceData.currency}
           </p>
           <p>
-            <strong>Total Tax Amount:</strong> ${invoiceData.summary.taxAmount.toFixed(2)}
+            <strong>Total Tax Amount:</strong> {invoiceData.summary.taxAmount.toFixed(2) +" " + invoiceData.currency}
           </p>
           <p className="text-lg font-bold">
-            <strong>Total Amount:</strong> ${invoiceData.summary.totalAmount.toFixed(2)}
+            <strong>Total Amount:</strong> {invoiceData.summary.totalAmount.toFixed(2) +" " + invoiceData.currency}
           </p>
           <p className="text-lg font-bold mt-4">
-            <strong>Due:</strong> USDC ${invoiceData.summary.totalAmount.toFixed(2)}
+            <strong>Due:</strong> {invoiceData.summary.totalAmount.toFixed(2) +" " + invoiceData.currency}
           </p>
         </div>
       </section>
 
+      
       {/* Memo Section */}
+      {invoiceData.memo && 
       <section className="mb-6">
         <h2 className="text-xl font-semibold">Memo</h2>
         <div className="p-4 bg-gray-100 rounded-lg">
           <p>{invoiceData.memo}</p>
         </div>
       </section>
-
-      {/* IPFS Links Section */}
-      {invoiceData.ipfsLinks.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-xl font-semibold">IPFS Links</h2>
-          <div className="p-4 bg-gray-100 rounded-lg">
-            {invoiceData.ipfsLinks.map((link: string, index: number) => (
-              <p key={index}>
-                <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
-                  {link}
-                </a>
-              </p>
-            ))}
-          </div>
-        </section>
-      )}
+      }
+      
 
       {/* Pay Now Button */}
+      { (invoiceData.state === "Created" ||  invoiceData.state === "Pending") && invoiceData.to == address && 
       <div className="text-right">
-        <button className="bg-green-500 text-white py-2 px-4 rounded">Pay now 💸</button>
+        <button className="bg-primary text-white py-2 px-4 rounded">Pay now 💸</button>
       </div>
+      }
     </div>
   );
 };
