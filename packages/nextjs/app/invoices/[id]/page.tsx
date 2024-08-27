@@ -1,12 +1,13 @@
-"use client"
+"use client";
 
-import React, { useEffect, useState} from "react";
+import React, { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { approveErc20, hasErc20Approval, hasSufficientFunds, payRequest } from "@requestnetwork/payment-processor";
 import { RequestNetwork } from "@requestnetwork/request-client.js";
-import { formatUnits } from "viem";
+import { Chain, formatUnits } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
+import { calculateStatus, clientToProvider, clientToSigner, findCurrency, keyLabelMapping, displayOrder } from "~~/utils/request/helper";
 import { initializeRequestNetwork } from "~~/utils/request/initializeRN";
-import { calculateStatus, findCurrency } from "~~/utils/request/helper";
-import { useParams } from 'next/navigation'
 
 const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,7 +17,8 @@ const InvoiceDetails: React.FC = () => {
   const { data: walletClient } = useWalletClient();
 
   const [requestNetwork, setRequestNetwork] = useState<RequestNetwork | null>(null);
-  const [invoiceData, setInvoiceData] = useState<any>(null); // State to store mapped invoice data
+  const [request, setRequest] = useState<any>(null);
+  const [invoiceData, setInvoiceData] = useState<any>(null);
 
   // Initialize RequestNetwork when walletClient is available
   useEffect(() => {
@@ -33,6 +35,7 @@ const InvoiceDetails: React.FC = () => {
       try {
         // Fetch the invoice using the invoice ID
         const invoice = await requestNetwork.fromRequestId(invoiceid as string);
+        setRequest(invoice);
         console.log(invoice);
         if (invoice) {
           const data = await invoice.getData();
@@ -46,9 +49,6 @@ const InvoiceDetails: React.FC = () => {
           const issuedDate = new Date(content.creationDate).toLocaleDateString();
           const dueDate = new Date(content.paymentTerms.dueDate).toLocaleDateString();
           const memo = content.note;
-          console.log(memo);
-          console.log(memo);
-          console.log(memo);
 
           // Payment details
           console.log("data", data);
@@ -67,7 +67,6 @@ const InvoiceDetails: React.FC = () => {
             const qty = item.quantity;
             const discount = parseFloat(item.discount);
             const tax = parseFloat(item.tax.amount);
-            console.log("item", item);
             const amount = parseFloat(((unitPrice * qty - discount) * (1 + tax / 100)).toFixed(2));
             return {
               description: item.name,
@@ -78,7 +77,6 @@ const InvoiceDetails: React.FC = () => {
               amount,
             };
           });
-          console.log(items);
 
           // Calculate summary totals
           const amountWithoutTax = items.reduce(
@@ -91,11 +89,7 @@ const InvoiceDetails: React.FC = () => {
           );
           const totalAmount = amountWithoutTax + taxAmount;
 
-          // Extract IPFS links
-          // const ipfsCids = data.requestMeta?.transactionManagerMeta?.dataAccessMeta?.transactionsStorageLocation || [];
-          // const ipfsLinks = ipfsCids.map((cid: string) => `https://ipfs.io/ipfs/${cid}`);
-          const ipfsLinks = ["https://ipfs.io/ipfs/"];
-          console.log(ipfsLinks);
+          console.log("content.buyerInfo,", content.buyerInfo);
 
           // Map to invoiceData structure
           const mappedInvoiceData = {
@@ -104,8 +98,8 @@ const InvoiceDetails: React.FC = () => {
             dueDate,
             from,
             to,
-            payerDetails: {}, // Placeholder for future data
-            payeeDetails: {}, // Placeholder for future data
+            payerDetails: content.buyerInfo,
+            payeeDetails: content.sellerInfo,
             paymentChain: paymentChain,
             currency: currency?.symbol,
             items,
@@ -115,12 +109,9 @@ const InvoiceDetails: React.FC = () => {
               totalAmount: parseFloat(totalAmount.toFixed(2)),
             },
             memo,
-            ipfsLinks,
             invoiceNumber: content.invoiceNumber, // Added to display in header
           };
-          console.log(mappedInvoiceData);
           setInvoiceData(mappedInvoiceData);
-          console.log(mappedInvoiceData);
         }
       } catch (error) {
         console.error("Failed to fetch invoice data:", error);
@@ -135,21 +126,53 @@ const InvoiceDetails: React.FC = () => {
     return <div>Loading...</div>;
   }
 
-  // Helper function to render details sections
   const renderDetailsSection = (details: any) => {
-    const detailFields = Object.entries(details).filter(([key, value]) => value);
-
-    if (detailFields.length === 0) return null;
-
+    const renderObjectFields = (obj: any, parentKey = '') => {
+      return displayOrder.map((key) => {
+        const fullKey = parentKey ? `${parentKey}.${key}` : key;
+        const label = keyLabelMapping[fullKey] || key.replace(/([A-Z])/g, " $1");
+        const value = key.includes('.') ? fullKey.split('.').reduce((o, i) => o[i], obj) : obj[key];
+        
+        if (value && typeof value === "object") {
+          // Recursively render nested objects
+          return renderObjectFields(value, fullKey);
+        } else if (value) {
+          // Display the key-value pair
+          return (
+            <p key={fullKey}>
+              <strong>{label}: </strong> {value}
+            </p>
+          );
+        }
+        return null;
+      });
+    };
+  
+    if (!details || Object.keys(details).length === 0) return null;
+  
     return (
       <div className="p-4 bg-gray-100 rounded-lg">
-        {detailFields.map(([key, value]) => (
-          <p key={key}>
-            <strong>{key.replace(/([A-Z])/g, " $1")}: </strong> {value}
-          </p>
-        ))}
+        {renderObjectFields(details)}
       </div>
     );
+  };
+  
+
+  const payInvoice = async () => {
+    const chain: Chain = walletClient?.chain!;
+    const signer = clientToSigner(address!, chain);
+    console.log("chain", chain);
+    const provider = clientToProvider(
+      chain.id,
+      chain.name,
+      chain.contracts?.ensRegistry?.address!,
+      chain.rpcUrls.default.http[0],
+    );
+    // console.log("signer", signer);
+    // console.log("request", request);
+    const paymentTx = await payRequest(request, provider);
+    console.log("paymentTx", paymentTx);
+    await paymentTx.wait();
   };
 
   return (
@@ -157,9 +180,9 @@ const InvoiceDetails: React.FC = () => {
       {/* Header Section */}
       <header className="mb-6">
         <div className="flex justify-between items-center">
-        <div className="flex items-center">
+          <div className="flex items-center">
             <h1 className="text-2xl font-bold mr-4">Invoice #{invoiceData.invoiceNumber}</h1>
-            <button className="bg-gray-400 text-white py-2 px-4 rounded">{invoiceData.state}</button>
+            <div className="bg-gray-400 text-white py-2 px-4 rounded">{invoiceData.state}</div>
           </div>
           <div className="text-right">
             <p>Issued on {invoiceData.issuedDate}</p>
@@ -228,38 +251,39 @@ const InvoiceDetails: React.FC = () => {
         <h2 className="text-xl font-semibold">Summary</h2>
         <div className="text-right">
           <p>
-            <strong>Amount without Tax:</strong> {invoiceData.summary.amountWithoutTax.toFixed(2) +" " + invoiceData.currency}
+            <strong>Amount without Tax:</strong>{" "}
+            {invoiceData.summary.amountWithoutTax.toFixed(2) + " " + invoiceData.currency}
           </p>
           <p>
-            <strong>Total Tax Amount:</strong> {invoiceData.summary.taxAmount.toFixed(2) +" " + invoiceData.currency}
+            <strong>Total Tax Amount:</strong> {invoiceData.summary.taxAmount.toFixed(2) + " " + invoiceData.currency}
           </p>
           <p className="text-lg font-bold">
-            <strong>Total Amount:</strong> {invoiceData.summary.totalAmount.toFixed(2) +" " + invoiceData.currency}
+            <strong>Total Amount:</strong> {invoiceData.summary.totalAmount.toFixed(2) + " " + invoiceData.currency}
           </p>
           <p className="text-lg font-bold mt-4">
-            <strong>Due:</strong> {invoiceData.summary.totalAmount.toFixed(2) +" " + invoiceData.currency}
+            <strong>Due:</strong> {invoiceData.summary.totalAmount.toFixed(2) + " " + invoiceData.currency}
           </p>
         </div>
       </section>
 
-      
       {/* Memo Section */}
-      {invoiceData.memo && 
-      <section className="mb-6">
-        <h2 className="text-xl font-semibold">Memo</h2>
-        <div className="p-4 bg-gray-100 rounded-lg">
-          <p>{invoiceData.memo}</p>
-        </div>
-      </section>
-      }
-      
+      {invoiceData.memo && (
+        <section className="mb-6">
+          <h2 className="text-xl font-semibold">Memo</h2>
+          <div className="p-4 bg-gray-100 rounded-lg">
+            <p>{invoiceData.memo}</p>
+          </div>
+        </section>
+      )}
 
       {/* Pay Now Button */}
-      { (invoiceData.state === "Created" ||  invoiceData.state === "Pending") && invoiceData.to == address && 
-      <div className="text-right">
-        <button className="bg-primary text-white py-2 px-4 rounded">Pay now 💸</button>
-      </div>
-      }
+      {(invoiceData.state === "Created" || invoiceData.state === "Pending") && invoiceData.to == address && (
+        <div className="text-right">
+          <button className="bg-primary text-white py-2 px-4 rounded" onClick={payInvoice} disabled={true}>
+            Pay now 💸
+          </button>
+        </div>
+      )}
     </div>
   );
 };

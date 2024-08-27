@@ -120,7 +120,6 @@ const Dashboard: React.FC = () => {
                         BigInt(request.balance?.balance || 0),
                       )}
                     </td>
-
                   </tr>
                 ),
             )}
