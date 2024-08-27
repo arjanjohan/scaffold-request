@@ -33,6 +33,7 @@ Before you begin, you need to install the following tools:
 This SE2 extension is not complete yet. The following changes are still needed:
 
 - Replace dashboard page by the Request Network template, which is blocked by [this issue](https://github.com/RequestNetwork/web-components/issues/31). The dashboard template is now not complatible with the SE2 wallet provider, but the work in progress implementation is available at `packages/nextjs/app/request-dashboard-template` currently.
+- add externalContracts for Request Network
 - Custom dashboard changes (not needed if above template is used)
     - Add currency
     - Add download PDF button functionality
