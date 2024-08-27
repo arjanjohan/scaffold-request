@@ -5,20 +5,21 @@ import { useParams } from "next/navigation";
 import { approveErc20, hasErc20Approval, hasSufficientFunds, payRequest } from "@requestnetwork/payment-processor";
 import { RequestNetwork } from "@requestnetwork/request-client.js";
 import { Chain, formatUnits } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
-import { calculateStatus, clientToProvider, clientToSigner, findCurrency, keyLabelMapping, displayOrder } from "~~/utils/request/helper";
+import { useAccount, useWalletClient, useContractWrite, useWriteContract } from "wagmi";import { calculateStatus, clientToProvider, clientToSigner, findCurrency, keyLabelMapping, displayOrder } from "~~/utils/request/helper";
 import { initializeRequestNetwork } from "~~/utils/request/initializeRN";
+
 
 const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const invoiceid = id;
-
+  const { writeContract } = useWriteContract()
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
 
   const [requestNetwork, setRequestNetwork] = useState<RequestNetwork | null>(null);
   const [request, setRequest] = useState<any>(null);
   const [invoiceData, setInvoiceData] = useState<any>(null);
+
 
   // Initialize RequestNetwork when walletClient is available
   useEffect(() => {
@@ -54,6 +55,7 @@ const InvoiceDetails: React.FC = () => {
           console.log("data", data);
           const paymentChain = data.currencyInfo.network;
           const currencyAddress = data.currencyInfo.value;
+
 
           // State
           const expectedAmount = BigInt(data.expectedAmount);
@@ -159,20 +161,27 @@ const InvoiceDetails: React.FC = () => {
   
 
   const payInvoice = async () => {
-    const chain: Chain = walletClient?.chain!;
-    const signer = clientToSigner(address!, chain);
-    console.log("chain", chain);
-    const provider = clientToProvider(
-      chain.id,
-      chain.name,
-      chain.contracts?.ensRegistry?.address!,
-      chain.rpcUrls.default.http[0],
-    );
-    // console.log("signer", signer);
-    // console.log("request", request);
-    const paymentTx = await payRequest(request, provider);
-    console.log("paymentTx", paymentTx);
-    await paymentTx.wait();
+    const data = await request.getData();
+    const currency = data.currencyInfo.value;
+    const amount = BigInt(data.expectedAmount);
+    const receiver = data.payee.value;
+    console.log(data);
+    console.log("currency", currency);
+    console.log("amount", amount);
+    console.log("receiver", receiver);  
+    await writeContract({ 
+          abi: ["function transfer(address to, uint256 value) returns (bool)"],
+          address: currency,
+          functionName: 'transfer',
+          args: [
+            receiver, 
+            amount
+        ? BigInt(amount.toString()) 
+        : 0n
+          ]
+
+       });
+      console.log("paying invoice");
   };
 
   return (
@@ -279,11 +288,12 @@ const InvoiceDetails: React.FC = () => {
       {/* Pay Now Button */}
       {(invoiceData.state === "Created" || invoiceData.state === "Pending") && invoiceData.to == address && (
         <div className="text-right">
-          <button className="bg-primary text-white py-2 px-4 rounded" onClick={payInvoice} disabled={true}>
+          <button className="bg-primary text-white py-2 px-4 rounded" onClick={payInvoice} >
             Pay now 💸
           </button>
         </div>
       )}
+
     </div>
   );
 };
