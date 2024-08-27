@@ -1,15 +1,16 @@
-"use client";
+"use client"
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState} from "react";
 import { RequestNetwork } from "@requestnetwork/request-client.js";
 import { formatUnits } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 import { initializeRequestNetwork } from "~~/utils/request/initializeRN";
 import { calculateStatus, findCurrency } from "~~/utils/request/helper";
+import { useParams } from 'next/navigation'
 
 const InvoiceDetails: React.FC = () => {
-  const invoiceid = "0185c6b823249cf849c41b8b7c36488e36fb5a3c440dc5e5d4d93aec7098b55b0b";
-  // TODO: Use router
+  const { id } = useParams<{ id: string }>();
+  const invoiceid = id;
 
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
@@ -156,10 +157,10 @@ const InvoiceDetails: React.FC = () => {
       {/* Header Section */}
       <header className="mb-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Invoice #{invoiceData.invoiceNumber} </h1> 
-          
-          <button className="bg-gray-400 text-white py-2 px-4 rounded">{invoiceData.state}</button>
-          
+        <div className="flex items-center">
+            <h1 className="text-2xl font-bold mr-4">Invoice #{invoiceData.invoiceNumber}</h1>
+            <button className="bg-gray-400 text-white py-2 px-4 rounded">{invoiceData.state}</button>
+          </div>
           <div className="text-right">
             <p>Issued on {invoiceData.issuedDate}</p>
             <p className="font-semibold">Payment due by {invoiceData.dueDate}</p>
