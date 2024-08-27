@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-
 import { RequestNetwork } from "@requestnetwork/request-client.js";
 import { formatUnits } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
@@ -39,7 +38,7 @@ const InvoiceDetails: React.FC = () => {
           console.log(invoice);
           console.log(data);
           console.log(content);
-          
+
           // Extract payer and payee Ethereum addresses
           const from = data.payee.value;
           const to = data.payer.value;
@@ -55,7 +54,7 @@ const InvoiceDetails: React.FC = () => {
           console.log(memo);
 
           // Payment details
-          console.log("data",data);
+          console.log("data", data);
           const paymentChain = data.currencyInfo.network;
           const currency = data.currencyInfo.value;
 
@@ -78,8 +77,14 @@ const InvoiceDetails: React.FC = () => {
           console.log(items);
 
           // Calculate summary totals
-          const amountWithoutTax = items.reduce((acc: number, item: any) => acc + (item.unitPrice * item.qty - item.discount), 0);
-          const taxAmount = items.reduce((acc: number, item: any) => acc + ((item.unitPrice * item.qty - item.discount) * (item.tax / 100)), 0);
+          const amountWithoutTax = items.reduce(
+            (acc: number, item: any) => acc + (item.unitPrice * item.qty - item.discount),
+            0,
+          );
+          const taxAmount = items.reduce(
+            (acc: number, item: any) => acc + (item.unitPrice * item.qty - item.discount) * (item.tax / 100),
+            0,
+          );
           const totalAmount = amountWithoutTax + taxAmount;
 
           // Extract IPFS links
@@ -255,9 +260,7 @@ const InvoiceDetails: React.FC = () => {
 
       {/* Pay Now Button */}
       <div className="text-right">
-        <button className="bg-green-500 text-white py-2 px-4 rounded">
-          Pay now 💸
-        </button>
+        <button className="bg-green-500 text-white py-2 px-4 rounded">Pay now 💸</button>
       </div>
     </div>
   );

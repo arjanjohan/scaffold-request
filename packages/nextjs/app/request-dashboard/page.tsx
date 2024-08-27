@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { RequestNetwork, Types } from "@requestnetwork/request-client.js";
 import { formatUnits } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
+import { calculateStatus, findCurrency } from "~~/utils/request/helper";
 import { initializeRequestNetwork } from "~~/utils/request/initializeRN";
 
 const Dashboard: React.FC = () => {
@@ -35,24 +36,6 @@ const Dashboard: React.FC = () => {
         console.error("Failed to fetch request history:", error);
       });
   }, [address, requestNetwork]);
-
-  const calculateStatus = (state: string, expectedAmount: bigint, balance: bigint) => {
-    if (balance >= expectedAmount) {
-      return "Paid";
-    }
-    switch (state) {
-      case Types.RequestLogic.STATE.ACCEPTED:
-        return "Accepted";
-      case Types.RequestLogic.STATE.CANCELED:
-        return "Canceled";
-      case Types.RequestLogic.STATE.CREATED:
-        return "Created";
-      case Types.RequestLogic.STATE.PENDING:
-        return "Pending";
-      default:
-        return "Unknown";
-    }
-  };
 
   const filterRequests = (tab: "All" | "Pay" | "Get Paid") => {
     if (!totalRequestHistory) return [];
@@ -97,9 +80,9 @@ const Dashboard: React.FC = () => {
               <th>Created</th>
               <th>Invoice #</th>
               <th>Payer</th>
+              <th>Payee</th>
               <th>Expected Amount</th>
               <th>Status</th>
-              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -112,11 +95,24 @@ const Dashboard: React.FC = () => {
                     onClick={() => (window.location.href = `/invoices/${request.requestId}`)}
                   >
                     <td>{new Date(request.timestamp).toLocaleDateString()}</td>
-                    <td>{index + 1}</td>
+                    <td>{request.contentData.invoiceNumber}</td>
                     <td>
                       {request.payer?.value.slice(0, 5)}...{request.payer?.value.slice(-4)}
                     </td>
-                    <td>{formatUnits(BigInt(request.expectedAmount), 18)}</td>
+                    <td>
+                      {request.payee?.value.slice(0, 5)}...{request.payee?.value.slice(-4)}
+                    </td>
+                    <td>
+                      {(() => {
+                        const currency = findCurrency(request.currencyInfo.value, request.currencyInfo.network);
+                        if (currency) {
+                          const formattedAmount = formatUnits(BigInt(request.expectedAmount), currency.decimals);
+                          return `${formattedAmount} ${currency.symbol}`;
+                        } else {
+                          return formatUnits(BigInt(request.expectedAmount), 18); // fallback to 18 decimals if not found
+                        }
+                      })()}
+                    </td>{" "}
                     <td>
                       {calculateStatus(
                         request.state,
@@ -124,11 +120,7 @@ const Dashboard: React.FC = () => {
                         BigInt(request.balance?.balance || 0),
                       )}
                     </td>
-                    <td>
-                      <button className="btn" disabled>
-                        Download PDF
-                      </button>
-                    </td>
+
                   </tr>
                 ),
             )}
