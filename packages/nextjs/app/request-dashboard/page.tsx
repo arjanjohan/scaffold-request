@@ -94,7 +94,7 @@ const Dashboard: React.FC = () => {
                     className="cursor-pointer hover:bg-gray-100"
                     onClick={() => (window.location.href = `/invoices/${request.requestId}`)}
                   >
-                    <td>{new Date(request.timestamp).toLocaleDateString()}</td>
+                    <td>{new Date(request.contentData.creationDate).toLocaleDateString()}</td>
                     <td>{request.contentData.invoiceNumber}</td>
                     <td>
                       {request.payer?.value.slice(0, 5)}...{request.payer?.value.slice(-4)}
