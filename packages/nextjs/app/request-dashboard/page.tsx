@@ -87,7 +87,7 @@ const Dashboard: React.FC = () => {
           </thead>
           <tbody>
             {filterRequests(activeTab)?.map(
-              (request, index) =>
+              request =>
                 request && (
                   <tr
                     key={request.requestId}
@@ -104,7 +104,7 @@ const Dashboard: React.FC = () => {
                     </td>
                     <td>
                       {(() => {
-                        const currency = findCurrency(request.currencyInfo.value, request.currencyInfo.network);
+                        const currency = findCurrency(request.currencyInfo.value, request.currencyInfo.network || "");
                         if (currency) {
                           const formattedAmount = formatUnits(BigInt(request.expectedAmount), currency.decimals);
                           return `${formattedAmount} ${currency.symbol}`;

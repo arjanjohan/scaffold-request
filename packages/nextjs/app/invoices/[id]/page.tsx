@@ -2,24 +2,22 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { approveErc20, hasErc20Approval, hasSufficientFunds, payRequest } from "@requestnetwork/payment-processor";
 import { RequestNetwork } from "@requestnetwork/request-client.js";
-import { Chain, formatUnits } from "viem";
-import { useAccount, useWalletClient, useContractWrite, useWriteContract } from "wagmi";import { calculateStatus, clientToProvider, clientToSigner, findCurrency, keyLabelMapping, displayOrder } from "~~/utils/request/helper";
+import { formatUnits } from "viem";
+import { useAccount, useWalletClient, useWriteContract } from "wagmi";
+import { calculateStatus, displayOrder, findCurrency, keyLabelMapping } from "~~/utils/request/helper";
 import { initializeRequestNetwork } from "~~/utils/request/initializeRN";
-
 
 const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const invoiceid = id;
-  const { writeContract } = useWriteContract()
+  const { writeContract } = useWriteContract();
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
 
   const [requestNetwork, setRequestNetwork] = useState<RequestNetwork | null>(null);
   const [request, setRequest] = useState<any>(null);
   const [invoiceData, setInvoiceData] = useState<any>(null);
-
 
   // Initialize RequestNetwork when walletClient is available
   useEffect(() => {
@@ -43,8 +41,8 @@ const InvoiceDetails: React.FC = () => {
           const content = data.contentData;
 
           // Extract payer and payee Ethereum addresses
-          const from = data.payee.value;
-          const to = data.payer.value;
+          const from = data.payee?.value ?? "Unknown";
+          const to = data.payer?.value ?? "Unknown";
 
           // Format dates
           const issuedDate = new Date(content.creationDate).toLocaleDateString();
@@ -53,10 +51,8 @@ const InvoiceDetails: React.FC = () => {
 
           // Payment details
           console.log("data", data);
-          const paymentChain = data.currencyInfo.network;
-          const currencyAddress = data.currencyInfo.value;
-
-
+          const paymentChain = data.currencyInfo.network ?? "Unknown";
+          const currencyAddress = data.currencyInfo?.value ?? "";
           // State
           const expectedAmount = BigInt(data.expectedAmount);
           const balance = BigInt(data.balance?.balance || 0);
@@ -65,7 +61,7 @@ const InvoiceDetails: React.FC = () => {
           const currency = findCurrency(currencyAddress, paymentChain);
           // Map invoice items
           const items = content.invoiceItems.map((item: any) => {
-            const unitPrice = parseFloat(formatUnits(item.unitPrice, currency.decimals)); // Assuming 6 decimals for USDC
+            const unitPrice = currency ? parseFloat(formatUnits(item.unitPrice, currency.decimals)) : 0;
             const qty = item.quantity;
             const discount = parseFloat(item.discount);
             const tax = parseFloat(item.tax.amount);
@@ -129,17 +125,15 @@ const InvoiceDetails: React.FC = () => {
   }
 
   const renderDetailsSection = (details: any) => {
-    const renderObjectFields = (obj: any, parentKey = '') => {
-      return displayOrder.map((key) => {
+    const renderObjectFields = (obj: any, parentKey = ""): JSX.Element | null => {
+      const elements = displayOrder.map(key => {
         const fullKey = parentKey ? `${parentKey}.${key}` : key;
         const label = keyLabelMapping[fullKey] || key.replace(/([A-Z])/g, " $1");
-        const value = key.includes('.') ? fullKey.split('.').reduce((o, i) => o[i], obj) : obj[key];
-        
+        const value = key.includes(".") ? fullKey.split(".").reduce((o, i) => o?.[i], obj) : obj?.[key];
+
         if (value && typeof value === "object") {
-          // Recursively render nested objects
           return renderObjectFields(value, fullKey);
         } else if (value) {
-          // Display the key-value pair
           return (
             <p key={fullKey}>
               <strong>{label}: </strong> {value}
@@ -148,17 +142,14 @@ const InvoiceDetails: React.FC = () => {
         }
         return null;
       });
+
+      return <>{elements}</>;
     };
-  
+
     if (!details || Object.keys(details).length === 0) return null;
-  
-    return (
-      <div className="p-4 bg-gray-100 rounded-lg">
-        {renderObjectFields(details)}
-      </div>
-    );
+
+    return <div className="p-4 bg-gray-100 rounded-lg">{renderObjectFields(details)}</div>;
   };
-  
 
   const payInvoice = async () => {
     const data = await request.getData();
@@ -168,20 +159,14 @@ const InvoiceDetails: React.FC = () => {
     console.log(data);
     console.log("currency", currency);
     console.log("amount", amount);
-    console.log("receiver", receiver);  
-    await writeContract({ 
-          abi: ["function transfer(address to, uint256 value) returns (bool)"],
-          address: currency,
-          functionName: 'transfer',
-          args: [
-            receiver, 
-            amount
-        ? BigInt(amount.toString()) 
-        : 0n
-          ]
-
-       });
-      console.log("paying invoice");
+    console.log("receiver", receiver);
+    await writeContract({
+      abi: ["function transfer(address to, uint256 value) returns (bool)"],
+      address: currency,
+      functionName: "transfer",
+      args: [receiver, amount ? BigInt(amount.toString()) : 0n],
+    });
+    console.log("paying invoice");
   };
 
   return (
@@ -288,12 +273,11 @@ const InvoiceDetails: React.FC = () => {
       {/* Pay Now Button */}
       {(invoiceData.state === "Created" || invoiceData.state === "Pending") && invoiceData.to == address && (
         <div className="text-right">
-          <button className="bg-primary text-white py-2 px-4 rounded" onClick={payInvoice} >
+          <button className="bg-primary text-white py-2 px-4 rounded" onClick={payInvoice}>
             Pay now 💸
           </button>
         </div>
       )}
-
     </div>
   );
 };
