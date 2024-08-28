@@ -1,0 +1,12 @@
+:root {
+  --primary-color: #0BB489;
+  --primary-content: #F9FBFF;
+  --secondary-color: #05856E;
+  --neutral-color: #1A1A1A;
+}
+
+create-invoice-form {
+  --background-color: var(--primary-color);
+  --text-color: var(--primary-content);
+  --accent-color: var(--secondary-color);
+}

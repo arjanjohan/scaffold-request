@@ -19,47 +19,39 @@ const InvoiceDetails: React.FC = () => {
   const [request, setRequest] = useState<any>(null);
   const [invoiceData, setInvoiceData] = useState<any>(null);
 
-  // Initialize RequestNetwork when walletClient is available
   useEffect(() => {
     if (walletClient) {
       initializeRequestNetwork(setRequestNetwork, walletClient);
     }
   }, [walletClient]);
 
-  // Fetch and map invoice data once router is ready and dependencies are met
   useEffect(() => {
     if (!invoiceid || !requestNetwork) return;
 
     const fetchInvoiceData = async () => {
       try {
-        // Fetch the invoice using the invoice ID
         const invoice = await requestNetwork.fromRequestId(invoiceid as string);
         setRequest(invoice);
-        console.log(invoice);
         if (invoice) {
           const data = await invoice.getData();
           const content = data.contentData;
 
-          // Extract payer and payee Ethereum addresses
           const from = data.payee?.value ?? "Unknown";
           const to = data.payer?.value ?? "Unknown";
 
-          // Format dates
           const issuedDate = new Date(content.creationDate).toLocaleDateString();
           const dueDate = new Date(content.paymentTerms.dueDate).toLocaleDateString();
           const memo = content.note;
 
-          // Payment details
-          console.log("data", data);
           const paymentChain = data.currencyInfo.network ?? "Unknown";
           const currencyAddress = data.currencyInfo?.value ?? "";
-          // State
+
           const expectedAmount = BigInt(data.expectedAmount);
           const balance = BigInt(data.balance?.balance || 0);
           const state = calculateStatus(data.state, expectedAmount, balance);
 
           const currency = findCurrency(currencyAddress, paymentChain);
-          // Map invoice items
+
           const items = content.invoiceItems.map((item: any) => {
             const unitPrice = currency ? parseFloat(formatUnits(item.unitPrice, currency.decimals)) : 0;
             const qty = item.quantity;
@@ -76,7 +68,6 @@ const InvoiceDetails: React.FC = () => {
             };
           });
 
-          // Calculate summary totals
           const amountWithoutTax = items.reduce(
             (acc: number, item: any) => acc + (item.unitPrice * item.qty - item.discount),
             0,
@@ -87,9 +78,6 @@ const InvoiceDetails: React.FC = () => {
           );
           const totalAmount = amountWithoutTax + taxAmount;
 
-          console.log("content.buyerInfo,", content.buyerInfo);
-
-          // Map to invoiceData structure
           const mappedInvoiceData = {
             state,
             issuedDate,
@@ -107,7 +95,7 @@ const InvoiceDetails: React.FC = () => {
               totalAmount: parseFloat(totalAmount.toFixed(2)),
             },
             memo,
-            invoiceNumber: content.invoiceNumber, // Added to display in header
+            invoiceNumber: content.invoiceNumber,
           };
           setInvoiceData(mappedInvoiceData);
         }
@@ -119,7 +107,6 @@ const InvoiceDetails: React.FC = () => {
     fetchInvoiceData();
   }, [invoiceid, requestNetwork]);
 
-  // Display a loading state while fetching data
   if (!invoiceData) {
     return <div>Loading...</div>;
   }
@@ -148,7 +135,7 @@ const InvoiceDetails: React.FC = () => {
 
     if (!details || Object.keys(details).length === 0) return null;
 
-    return <div className="p-4 bg-gray-100 rounded-lg">{renderObjectFields(details)}</div>;
+    return <div className="p-4 bg-base-100 rounded-lg">{renderObjectFields(details)}</div>;
   };
 
   const payInvoice = async () => {
@@ -156,10 +143,6 @@ const InvoiceDetails: React.FC = () => {
     const currency = data.currencyInfo.value;
     const amount = BigInt(data.expectedAmount);
     const receiver = data.payee.value;
-    console.log(data);
-    console.log("currency", currency);
-    console.log("amount", amount);
-    console.log("receiver", receiver);
     await writeContract({
       abi: ["function transfer(address to, uint256 value) returns (bool)"],
       address: currency,
@@ -170,13 +153,13 @@ const InvoiceDetails: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+    <div className="max-w-6xl mx-auto bg-neutral-content p-6 rounded-lg shadow-center">
       {/* Header Section */}
       <header className="mb-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
             <h1 className="text-2xl font-bold mr-4">Invoice #{invoiceData.invoiceNumber}</h1>
-            <div className="bg-gray-400 text-white py-2 px-4 rounded">{invoiceData.state}</div>
+            <div className="bg-accent text-accent-content py-2 px-4 rounded">{invoiceData.state}</div>
           </div>
           <div className="text-right">
             <p>Issued on {invoiceData.issuedDate}</p>
@@ -264,16 +247,16 @@ const InvoiceDetails: React.FC = () => {
       {invoiceData.memo && (
         <section className="mb-6">
           <h2 className="text-xl font-semibold">Memo</h2>
-          <div className="p-4 bg-gray-100 rounded-lg">
+          <div className="p-4 bg-base-100 rounded-lg text-primary-content">
             <p>{invoiceData.memo}</p>
           </div>
         </section>
       )}
 
       {/* Pay Now Button */}
-      {(invoiceData.state === "Created" || invoiceData.state === "Pending") && invoiceData.to == address && (
+      {(invoiceData.state === "Created" || invoiceData.state === "Pending") && invoiceData.to === address && (
         <div className="text-right">
-          <button className="bg-primary text-white py-2 px-4 rounded" onClick={payInvoice}>
+          <button className="bg-primary text-primary-content py-2 px-4 rounded" onClick={payInvoice}>
             Pay now 💸
           </button>
         </div>

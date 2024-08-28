@@ -42,19 +42,19 @@ module.exports = {
       },
       {
         dark: {
-          primary: "#212638",
-          "primary-content": "#F9FBFF",
-          secondary: "#323f61",
-          "secondary-content": "#F9FBFF",
-          accent: "#4969A6",
-          "accent-content": "#F9FBFF",
-          neutral: "#F9FBFF",
-          "neutral-content": "#385183",
-          "base-100": "#385183",
-          "base-200": "#2A3655",
-          "base-300": "#212638",
-          "base-content": "#F9FBFF",
-          info: "#385183",
+          primary: "#0BB489",            // Vibrant green
+          "primary-content": "#F9FBFF",  // Light text on primary
+          secondary: "#05856E",          // Darker green for secondary
+          "secondary-content": "#F9FBFF",// Light text on secondary
+          accent: "#046F5A",             // Even darker green for accents
+          "accent-content": "#F9FBFF",   // Light text on accent
+          neutral: "#1A1A1A",            // Near-black neutral background
+          "neutral-content": "#0BB489",  // Green content on neutral background
+          "base-100": "#2C7F6E",         // Black-like base background
+          "base-200": "#217B64",         // Slightly lighter than base-100
+          "base-300": "#196D54",         // Another step lighter, still very dark
+          "base-content": "#F9FBFF",     // Light content on dark base
+          info: "#0BB489",               // Consistent info color with primary
           success: "#34EEB6",
           warning: "#FFCF72",
           error: "#FF8863",

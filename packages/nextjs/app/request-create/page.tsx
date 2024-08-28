@@ -9,6 +9,8 @@ import { config } from "~~/utils/request/config";
 import { currencies } from "~~/utils/request/currencies";
 import { initializeRequestNetwork } from "~~/utils/request/initializeRN";
 
+// import '../../styles/request.css';
+
 import("@requestnetwork/create-invoice-form");
 
 const CreateInvoice: React.FC = () => {

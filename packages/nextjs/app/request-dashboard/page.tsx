@@ -64,7 +64,7 @@ const Dashboard: React.FC = () => {
           <button
             key={tab}
             className={`px-4 py-2 mx-2 rounded ${
-              activeTab === tab ? "bg-primary text-white" : "bg-gray-200 text-black"
+              activeTab === tab ? "bg-primary text-primary-content" : "bg-base-300 text-base-content"
             }`}
             onClick={() => setActiveTab(tab as "All" | "Pay" | "Get Paid")}
           >
@@ -73,10 +73,10 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      <div className="bg-white p-4 rounded-lg shadow-md overflow-x-auto">
+      <div className="bg-base-100 p-4 rounded-lg shadow-center overflow-x-auto">
         <table className="table w-full min-w-max">
           <thead>
-            <tr>
+            <tr className="text-base-content">
               <th>Created</th>
               <th>Invoice #</th>
               <th>Payer</th>
@@ -91,7 +91,7 @@ const Dashboard: React.FC = () => {
                 request && (
                   <tr
                     key={request.requestId}
-                    className="cursor-pointer hover:bg-gray-100"
+                    className="cursor-pointer hover:bg-base-300"
                     onClick={() => (window.location.href = `/invoices/${request.requestId}`)}
                   >
                     <td>{new Date(request.contentData.creationDate).toLocaleDateString()}</td>
@@ -112,7 +112,7 @@ const Dashboard: React.FC = () => {
                           return formatUnits(BigInt(request.expectedAmount), 18); // fallback to 18 decimals if not found
                         }
                       })()}
-                    </td>{" "}
+                    </td>
                     <td>
                       {calculateStatus(
                         request.state,
