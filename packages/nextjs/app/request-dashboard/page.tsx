@@ -64,7 +64,7 @@ const Dashboard: React.FC = () => {
           <button
             key={tab}
             className={`px-4 py-2 mx-2 rounded ${
-              activeTab === tab ? "bg-primary text-primary-content" : "bg-base-300 text-base-content"
+              activeTab === tab ? "bg-primary text-primary-content" : "bg-base-100 text-base-content"
             }`}
             onClick={() => setActiveTab(tab as "All" | "Pay" | "Get Paid")}
           >
@@ -79,8 +79,8 @@ const Dashboard: React.FC = () => {
             <tr className="text-base-content">
               <th>Created</th>
               <th>Invoice #</th>
-              <th>Payer</th>
               <th>Payee</th>
+              <th>Payer</th>
               <th>Expected Amount</th>
               <th>Status</th>
             </tr>
@@ -97,10 +97,10 @@ const Dashboard: React.FC = () => {
                     <td>{new Date(request.contentData.creationDate).toLocaleDateString()}</td>
                     <td>{request.contentData.invoiceNumber}</td>
                     <td>
-                      {request.payer?.value.slice(0, 5)}...{request.payer?.value.slice(-4)}
+                      {request.payee?.value.slice(0, 5)}...{request.payee?.value.slice(-4)}
                     </td>
                     <td>
-                      {request.payee?.value.slice(0, 5)}...{request.payee?.value.slice(-4)}
+                      {request.payer?.value.slice(0, 5)}...{request.payer?.value.slice(-4)}
                     </td>
                     <td>
                       {(() => {

@@ -4,19 +4,17 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { RequestNetwork } from "@requestnetwork/request-client.js";
 import { formatUnits } from "viem";
-import { useAccount, useWalletClient, useWriteContract } from "wagmi";
+import { useAccount, useWalletClient } from "wagmi";
 import { calculateStatus, displayOrder, findCurrency, keyLabelMapping } from "~~/utils/request/helper";
 import { initializeRequestNetwork } from "~~/utils/request/initializeRN";
 
 const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const invoiceid = id;
-  const { writeContract } = useWriteContract();
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
 
   const [requestNetwork, setRequestNetwork] = useState<RequestNetwork | null>(null);
-  const [request, setRequest] = useState<any>(null);
   const [invoiceData, setInvoiceData] = useState<any>(null);
 
   useEffect(() => {
@@ -31,7 +29,6 @@ const InvoiceDetails: React.FC = () => {
     const fetchInvoiceData = async () => {
       try {
         const invoice = await requestNetwork.fromRequestId(invoiceid as string);
-        setRequest(invoice);
         if (invoice) {
           const data = await invoice.getData();
           const content = data.contentData;
@@ -129,27 +126,21 @@ const InvoiceDetails: React.FC = () => {
         }
         return null;
       });
-
       return <>{elements}</>;
     };
-
-    if (!details || Object.keys(details).length === 0) return null;
+    console.log("details", details);
+    if (
+      !details ||
+      (Object.keys(details).length === 1 && Object.keys(details.address || {}).length === 0) ||
+      Object.keys(details).length === 0
+    )
+      return null;
 
     return <div className="p-4 bg-base-100 rounded-lg">{renderObjectFields(details)}</div>;
   };
 
   const payInvoice = async () => {
-    const data = await request.getData();
-    const currency = data.currencyInfo.value;
-    const amount = BigInt(data.expectedAmount);
-    const receiver = data.payee.value;
-    await writeContract({
-      abi: ["function transfer(address to, uint256 value) returns (bool)"],
-      address: currency,
-      functionName: "transfer",
-      args: [receiver, amount ? BigInt(amount.toString()) : 0n],
-    });
-    console.log("paying invoice");
+    console.log("Not implemented yet");
   };
 
   return (
@@ -247,7 +238,7 @@ const InvoiceDetails: React.FC = () => {
       {invoiceData.memo && (
         <section className="mb-6">
           <h2 className="text-xl font-semibold">Memo</h2>
-          <div className="p-4 bg-base-100 rounded-lg text-primary-content">
+          <div className="p-4 bg-base-100 rounded-lg">
             <p>{invoiceData.memo}</p>
           </div>
         </section>
@@ -256,7 +247,7 @@ const InvoiceDetails: React.FC = () => {
       {/* Pay Now Button */}
       {(invoiceData.state === "Created" || invoiceData.state === "Pending") && invoiceData.to === address && (
         <div className="text-right">
-          <button className="bg-primary text-primary-content py-2 px-4 rounded" onClick={payInvoice}>
+          <button className="bg-secondary text-primary-content py-2 px-4 rounded" onClick={payInvoice}>
             Pay now 💸
           </button>
         </div>
